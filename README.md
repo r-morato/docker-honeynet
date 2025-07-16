@@ -49,3 +49,50 @@ To use this project locally:
 git clone https://github.com/YourGitHubUsername/Docker-Honeynet.git
 cd Docker-Honeynet
 docker compose up -d
+```
+
+You’ll now have:
+
+SSH honeypot running on port 2222
+Telnet honeypot on port 2223
+Web dashboard accessible at http://<your-lab-ip>:28778
+Note: You can change the ports in cowrie.cfg and docker-compose.yml if needed.
+
+Automation Integration
+
+This setup can be plugged into broader homelab automation:
+
+Use Proxmox + Terraform to deploy a dedicated honeypot VM.
+Configure Ansible to pull the repo and start the stack.
+Add alerting with tools like Prometheus, ELK, or Grafana Loki.
+Security Notes
+
+Run in a sandboxed environment. Do not expose this honeypot to your internal trusted network.
+It is highly recommended to deploy this on a dedicated VM or VLAN.
+You can monitor log files under cowrie/var/log or through the log.io interface.
+While Cowrie is passive by design, never trust traffic from unknown sources.
+Future Plans
+
+Add Filebeat or Fluentd for log shipping
+Optional webhook integration for Discord/Slack alerts
+Tag and enrich data with GeoIP or reverse DNS
+Auto-block repeat offenders using fail2ban or Suricata
+Final Notes
+
+This is part of my broader homelab security tooling. It's meant to be:
+
+Easy to deploy
+Fun to tinker with
+Useful for learning about attacker behavior
+Like most homelab projects, it’s a work in progress — and always will be.
+
+
+---
+
+Let me know if you'd like:
+- Markdown badge support (Docker, License, etc.)
+- A logo or banner
+- A screenshot section
+- Instructions for cloud/VPS deployments
+
+I can generate those too.
