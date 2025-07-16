@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  cowrie:
+    image: cowrie/cowrie
+    container_name: cowrie
+    ports:
+      - "2222:2222"  # SSH honeypot
+      - "2223:2223"  # Telnet honeypot
+    volumes:
+      - ./cowrie/cowrie.cfg:/cowrie/cowrie.cfg
+    restart: unless-stopped
+
+  logio:
+    build: ./logio
+    container_name: logio
+    ports:
+      - "28778:28778"  # Web UI
+    restart: unless-stopped
+    volumes:
+      - ./cowrie/var/log:/logs
