@@ -39,6 +39,9 @@ In my setup a firewall rule forwards external `2222`/`2223` to the honeypot VM a
 
 ## The analyzer
 
+<img width="1200" height="2254" alt="image" src="https://github.com/user-attachments/assets/9d4574d2-1aab-4703-a02f-60dfd41f232d" />
+
+
 Cowrie generates far more log noise than is worth reading by hand, mostly bots retrying the same credentials and dropping the same scripts. [`analyzer/`](analyzer/) reads the JSONL log and produces one self-contained HTML report: rule-based attack tagging, TF-IDF + KMeans clustering to collapse a single campaign hitting from many IPs into one entry, and an Isolation Forest pass to flag the odd sessions. Runs locally in under a second, no cloud, no API keys.
 
 ```bash
