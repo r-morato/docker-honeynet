@@ -1,90 +1,62 @@
-# Docker-Honeynet
+# docker-honeynet
 
-This repository contains a lightweight honeypot and log monitoring stack for my homelab, all deployed using Docker Compose. It uses [Cowrie](https://github.com/cowrie/cowrie) to emulate SSH and Telnet services and capture unauthorized access attempts, paired with a live web dashboard for real-time log monitoring.
+A small SSH/Telnet honeypot for my homelab, plus the tool I use to make sense of what it catches.
 
----
+Two parts, one repo:
 
-## Purpose
+| Path | What it is |
+|---|---|
+| `docker-compose.yml`, `cowrie/`, `logio/` | the honeypot stack: [Cowrie](https://github.com/cowrie/cowrie) behind a [log.io](https://github.com/NarrativeScience/log.io) live log viewer, all in Docker |
+| [`analyzer/`](analyzer/) | [Honeypot Intel Analyzer](analyzer/README.md), a local Python tool that reads the Cowrie logs and turns them into a triaged HTML report (attack types, correlated campaigns, anomalies) |
 
-The main goal of this setup is to **experiment with network security**, **monitor inbound connections**, and **detect scanning or brute-force attempts** in a controlled environment.
+The stack collects the logs; the analyzer is what I actually read.
 
-Some key benefits:
+## The honeypot stack
 
-- Helps identify bad actors scanning or probing exposed ports.
-- Learn how honeypots work and integrate with log tools.
-- Visualize access attempts in real time through a lightweight dashboard.
-- Runs entirely in Docker for easy cleanup and redeployment.
-- Isolated environment means attackers never reach your real services.
-
----
-
-## What’s Covered
-
-This setup currently includes:
-
-- **Cowrie Honeypot**: Emulates SSH and Telnet on custom ports (2222/2223).
-- **Log.io Dashboard**: Web-based real-time viewer for Cowrie logs.
-- **Docker Compose Orchestration**: Easy to deploy and tear down.
-
----
-
-## Repository Layout
-
-```
-Docker-Honeynet/
-├── docker-compose.yml        # Defines services and network
-├── cowrie/                   # Honeypot configuration
-│   └── cowrie.cfg            # Custom Cowrie settings (ports, interfaces)
-├── logio/                    # Custom Dockerfile for log viewer
-│   └── Dockerfile
-└── .gitignore                # Ignores log and temp files
-```
-
----
-
-## Getting Started
-
-To use this project locally:
+Cowrie emulates SSH on `2222` and Telnet on `2223`, records every session (login attempts, commands run, files fetched), and log.io tails those logs in a browser at `:28778`.
 
 ```bash
-git clone https://github.com/YourGitHubUsername/Docker-Honeynet.git
-cd Docker-Honeynet
+git clone https://github.com/r-morato/docker-honeynet.git
+cd docker-honeynet
 docker compose up -d
 ```
 
-You’ll now have:
-- SSH honeypot running on `port 2222`
-- Telnet honeypot on `port 2223`
-- Web dashboard accessible at `http://<your-lab-ip>:28778`
+That gives you:
 
-**Note:** You can change the ports in `cowrie.cfg` and `docker-compose.yml` if needed.
+- SSH honeypot on `2222`
+- Telnet honeypot on `2223`
+- Live log viewer at `http://<lab-ip>:28778`
 
----
+Ports are set in `cowrie/cowrie.cfg` and `docker-compose.yml`. Cowrie's session logs (`cowrie/var/log/`) are gitignored.
 
-## Automation Integration
+### Running it safely
 
-This setup can be plugged into broader homelab automation:
+- Put this on a **dedicated VM or an isolated VLAN**, never on a trusted segment. The point is to attract hostile traffic.
+- Only forward the honeypot ports to it. Nothing else.
+- Everything in the logs (usernames, commands, IPs) was typed by an attacker. Treat it as untrusted input, which is also why the analyzer HTML-escapes all of it.
 
-- Use **Proxmox + Terraform** to deploy a dedicated honeypot VM.
-- Configure **Ansible** to pull the repo and start the stack.
-- Add alerting with tools like **Prometheus**, **ELK**, or **Grafana Loki**.
+In my setup a firewall rule forwards external `2222`/`2223` to the honeypot VM and drops everything else inbound to it.
 
----
+## The analyzer
 
-## Security Notes
+Cowrie generates far more log noise than is worth reading by hand, mostly bots retrying the same credentials and dropping the same scripts. [`analyzer/`](analyzer/) reads the JSONL log and produces one self-contained HTML report: rule-based attack tagging, TF-IDF + KMeans clustering to collapse a single campaign hitting from many IPs into one entry, and an Isolation Forest pass to flag the odd sessions. Runs locally in under a second, no cloud, no API keys.
 
-- **Run in a sandboxed environment**. Do not expose this honeypot to your internal trusted network.
-- It is highly recommended to deploy this on a **dedicated VM** or VLAN.
-- You can monitor log files under `cowrie/var/log` or through the log.io interface.
-- While Cowrie is passive by design, never trust traffic from unknown sources.
+```bash
+cd analyzer
+pip install -r requirements.txt
+python analyze.py --log sample_data/cowrie_sample.jsonl --out output/report.html
+# or point --log at a real Cowrie JSON log from the honeypot
+```
 
----
+There is synthetic sample data in `analyzer/sample_data/` and a pre-built [example report](https://htmlpreview.github.io/?https://github.com/r-morato/docker-honeynet/blob/main/analyzer/docs/example-report.html) if you want to see the output without running anything. Full detail in [`analyzer/README.md`](analyzer/README.md).
 
-## Future Plans
+## Ideas I haven't gotten to
 
-- Add Filebeat or Fluentd for log shipping
-- Optional webhook integration for Discord/Slack alerts
-- Tag and enrich data with GeoIP or reverse DNS
-- Auto-block repeat offenders using fail2ban or Suricata
+- Ship logs off the VM with Filebeat or Fluentd
+- Webhook alert on a high-severity session
+- GeoIP / reverse-DNS enrichment on source IPs
+- Auto-block repeat offenders upstream of the honeypot
 
+## License
 
+[MIT](LICENSE)
