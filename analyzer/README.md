@@ -61,7 +61,7 @@ Cowrie JSONL log
  src/report.py        renders one self-contained HTML file
 ```
 
-Worth noting: everything in that log — commands, usernames, IPs — was typed by an attacker, so it's untrusted by definition. Everything gets HTML-escaped before it's dropped into the report, otherwise you'd have a fun little XSS problem baked into your own tooling.
+Worth noting: everything in that log — commands, usernames, IPs — was typed by an attacker, so it's untrusted by definition. Everything gets HTML-escaped before it's dropped into the report, otherwise you'd have a fun little XSS problem baked into your own tooling. The parser is equally defensive: lines that aren't valid UTF-8 or aren't event objects get skipped or replaced rather than killing the whole run.
 
 ## Project structure
 
@@ -72,6 +72,8 @@ analyzer/
 │   ├── parser.py                    # Cowrie JSONL → session records
 │   ├── classifier.py                # tagging, clustering, anomaly detection
 │   └── report.py                    # static HTML report generation
+├── tests/
+│   └── test_parser.py               # python -m unittest discover tests
 ├── scripts/
 │   └── generate_sample_data.py      # synthetic Cowrie log generator
 ├── sample_data/
