@@ -44,7 +44,7 @@ def main():
 
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
     html_doc = generate_html_report(sessions, clusters, args.log)
-    with open(args.out, "w") as f:
+    with open(args.out, "w", encoding="utf-8") as f:
         f.write(html_doc)
 
     print(f"[*] Report written to {args.out}")

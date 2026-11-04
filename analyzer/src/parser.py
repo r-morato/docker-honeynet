@@ -13,11 +13,21 @@ def _parse_ts(ts):
     return datetime.fromisoformat(ts.replace("Z", "+00:00"))
 
 
+def _to_seconds(value):
+    """Cowrie may log duration as a number or a string like "2.1"."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def load_sessions(log_path):
     """Parse a Cowrie JSONL log file into a list of session dicts."""
     sessions = {}
 
-    with open(log_path, "r") as f:
+    # The log is attacker-controlled: tolerate invalid UTF-8 and lines that
+    # are valid JSON but not event objects, rather than aborting the run.
+    with open(log_path, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -26,9 +36,11 @@ def load_sessions(log_path):
                 event = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            if not isinstance(event, dict):
+                continue
 
             sid = event.get("session")
-            if not sid:
+            if not sid or not isinstance(sid, str):
                 continue
 
             s = sessions.setdefault(sid, {
@@ -61,7 +73,7 @@ def load_sessions(log_path):
 
             elif eid == "cowrie.session.closed":
                 s["end"] = event.get("timestamp")
-                s["duration"] = event.get("duration")
+                s["duration"] = _to_seconds(event.get("duration"))
 
     result = []
     for s in sessions.values():
