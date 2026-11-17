@@ -2,3 +2,4 @@
 __pycache__/
 cowrie/var/
 *.log
+analyzer/output/alerted_sessions.json

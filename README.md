@@ -53,10 +53,16 @@ python analyze.py --log sample_data/cowrie_sample.jsonl --out output/report.html
 
 There is synthetic sample data in `analyzer/sample_data/` and a pre-built [example report](https://htmlpreview.github.io/?https://github.com/r-morato/docker-honeynet/blob/main/analyzer/docs/example-report.html) if you want to see the output without running anything. Full detail in [`analyzer/README.md`](analyzer/README.md).
 
+It can also alert you: run it from cron with a webhook (Slack, Discord, ntfy or anything that takes JSON) and it posts only the new high-severity sessions since the last run.
+
+```bash
+# crontab on the honeypot VM: check every 15 minutes
+*/15 * * * * cd /opt/docker-honeynet/analyzer && HONEYPOT_WEBHOOK_URL=https://... python analyze.py --log ../cowrie/var/log/cowrie/cowrie.json --out output/report.html
+```
+
 ## Ideas I haven't gotten to
 
 - Ship logs off the VM with Filebeat or Fluentd
-- Webhook alert on a high-severity session
 - GeoIP / reverse-DNS enrichment on source IPs
 - Auto-block repeat offenders upstream of the honeypot
 
