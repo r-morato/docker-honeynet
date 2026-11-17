@@ -44,6 +44,27 @@ Don't have a Cowrie log handy? Run `scripts/generate_sample_data.py` and it'll g
 - Whatever got flagged as anomalous
 - A table of the noisiest source IPs and what they were mostly doing
 
+## Alerts
+
+Run it on a schedule and it can tell you when something worth reading happens, instead of you opening the report to find out. Give it a webhook and it posts every *new* session at severity 4 or above (persistence, exfiltration, malware download, cryptomining):
+
+```bash
+export HONEYPOT_WEBHOOK_URL=https://hooks.slack.com/services/...   # or Discord, ntfy, your own endpoint
+python analyze.py --log /path/to/cowrie.json --out output/report.html
+```
+
+| Option | What it does |
+|---|---|
+| `--alert-webhook URL` | Where to POST. Defaults to `$HONEYPOT_WEBHOOK_URL`, which keeps the URL out of your shell history and crontab |
+| `--alert-min-severity 1-5` | Lowest severity to alert on (default `4`) |
+| `--alert-anomalies` | Also alert on sessions the Isolation Forest flagged, whatever their severity |
+| `--alert-state FILE` | Remembers which sessions were already sent (default `alerted_sessions.json` next to `--out`) |
+| `--alert-dry-run` | Print the message instead of sending it, and don't mark anything as sent |
+
+The message carries both `text` (Slack, Mattermost, most receivers) and `content` (Discord), so one URL works with the usual chat webhooks, plus a `sessions` list with the full details for your own tooling. Only sessions that haven't been alerted on before are sent, so re-running over the same growing Cowrie log every few minutes is fine. If the webhook doesn't answer with a 2xx, nothing is recorded, the report is still written, and the script exits with code `2`, so the next run tries again and cron can tell you something's wrong.
+
+The commands in the message were typed by an attacker. They are flattened to one line, truncated and kept inside code formatting, but treat them as untrusted wherever they land.
+
 ## How it works
 
 ```
@@ -71,9 +92,11 @@ analyzer/
 ├── src/
 │   ├── parser.py                    # Cowrie JSONL → session records
 │   ├── classifier.py                # tagging, clustering, anomaly detection
-│   └── report.py                    # static HTML report generation
+│   ├── report.py                    # static HTML report generation
+│   └── alerts.py                    # optional webhook alerts for new high-severity sessions
 ├── tests/
-│   └── test_parser.py               # python -m unittest discover tests
+│   ├── test_parser.py               # python -m unittest discover tests
+│   └── test_alerts.py
 ├── scripts/
 │   └── generate_sample_data.py      # synthetic Cowrie log generator
 ├── sample_data/
